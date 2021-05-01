@@ -8,7 +8,7 @@
 
 import UIKit
 
-class WeatherViewController: UIViewController, UITextFieldDelegate {
+class WeatherViewController: UIViewController, UITextFieldDelegate, WeatherManagerDelegate {
 
     @IBOutlet weak var conditionImageView: UIImageView!
     @IBOutlet weak var temperatureLabel: UILabel!
@@ -19,7 +19,7 @@ class WeatherViewController: UIViewController, UITextFieldDelegate {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+        weatherManager.delegate = self
         // the line of code tells the textfield to report back to the view controller
         searchTextField.delegate = self
         
@@ -31,6 +31,7 @@ class WeatherViewController: UIViewController, UITextFieldDelegate {
         
         //tells the keyboard to disable once the text is entered
         searchTextField.endEditing(true)
+        // temperatureLabel.text = weatherManager.celius
     }
     
     // because of the searchTextField.delegate = self - the following method
@@ -57,6 +58,10 @@ class WeatherViewController: UIViewController, UITextFieldDelegate {
             // temperatureLabel.text = weatherManager.fetch
         }
         searchTextField.text = ""
+    }
+    
+    func didUpdateWeather(weather: WeatherModel) {
+        print(weather.temperature)
     }
     
 }

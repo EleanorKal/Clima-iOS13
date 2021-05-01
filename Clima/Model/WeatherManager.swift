@@ -6,56 +6,66 @@
 //  Copyright © 2021 Blarnya. All rights reserved.
 //
 
+
 import Foundation
+import CoreLocation
+
+protocol WeatherManagerDelegate {
+    func didUpdateWeather(_ weatherManager: WeatherManager, weather: WeatherModel)
+    func didFailWithError(error: Error)
+}
 
 struct WeatherManager {
-    let weatherURL = "https://api.openweathermap.org/data/2.5/weather?appid=ae60a1766fa3448bf436b7bea399d40a&units=metric"
-    var celius : String = "0"
+    let weatherURL = "https://api.openweathermap.org/data/2.5/weather?appid=e72ca729af228beabd5d20e3b7749713&units=metric"
+    
+    var delegate: WeatherManagerDelegate?
+    
     func fetchWeather(cityName: String) {
         let urlString = "\(weatherURL)&q=\(cityName)"
-        performRequest(urlString: urlString)
-        print(urlString)
+        performRequest(with: urlString)
     }
     
-    func performRequest(urlString: String) {
-        // 4 steps of networking
-        // 1. Create a URL
+    func fetchWeather(latitude: CLLocationDegrees, longitude: CLLocationDegrees) {
+        let urlString = "\(weatherURL)&lat=\(latitude)&lon=\(longitude)"
+        performRequest(with: urlString)
+    }
+    
+    func performRequest(with urlString: String) {
         if let url = URL(string: urlString) {
-            // 2. Create a URLSession
             let session = URLSession(configuration: .default)
-            // 3. Give the session a task - the void section signifies that the output needs to take  function
-            //    the completionHandler will be implemented by the task.resume()
-            
-            //let task = session.dataTask(with: url, completionHandler: handle(data:response:error:))
             let task = session.dataTask(with: url) { (data, response, error) in
                 if error != nil {
-                    print(error!)
-                    return  // this return means exit out of this function and do not continue - i.e., do nothing if an error is returned
+                    self.delegate?.didFailWithError(error: error!)
+                    return
                 }
-                
                 if let safeData = data {
-                    self.parseJSON(weatherData: safeData)
+                    if let weather = self.parseJSON(safeData) {
+                        self.delegate?.didUpdateWeather(self, weather: weather)
+                    }
                 }
             }
-            // 4. Start the task
             task.resume()
-            
         }
-        
     }
     
-   
-    func parseJSON(weatherData: Data) {
+    func parseJSON(_ weatherData: Data) -> WeatherModel? {
         let decoder = JSONDecoder()
-        
-        // As this line implicitly throws an exception. In needs to be marked with a try keyword
-        
         do {
             let decodedData = try decoder.decode(WeatherData.self, from: weatherData)
-            print(decodedData.main.temp)
-        } catch  {
-            print(error)
+            let id = decodedData.weather[0].id
+            let temp = decodedData.main.temp
+            let name = decodedData.name
+            
+            let weather = WeatherModel(conditionId: id, cityName: name, temperature: temp)
+            return weather
+            
+        } catch {
+            delegate?.didFailWithError(error: error)
+            return nil
         }
-        
     }
+    
+    
+    
 }
+
